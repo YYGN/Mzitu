@@ -4,24 +4,38 @@
 import pymongo
 import requests
 from setting import *
-from requests import exceptions
+from requests.exceptions import ProxyError
 from lxml import etree
 from hashlib import md5
 import os
-import time
+import redis
+import random
+from urllib3.exceptions import NewConnertionError, MaxRetryError
 
 
 def get_html(url=None, headers=None, proxy=None):
     url = url if url else START_URL
     headers = headers if headers else DEFAULT_USER_AGENT
     proxy = proxy
-    try:
-        response = requests.get(url, headers=headers, proxies=proxy)
-        if response.status_code == 200:
-            response.encoding = response.apparent_encoding
-            return response.text
-    except (exceptions, TypeError) as e:
-        raise 'Error happend goes %s' % e
+    if proxy:
+        if isinstance(proxy, bytes)
+        proxy = proxy.decode('utf-8')
+        print('正在使用代理IP %s' % proxy)
+        try:
+            response = requests.get(url, headers=headers, proxies=proxy)
+            if response.status_code == 200:
+                response.encoding = response.apparent_encoding
+                return response.text
+        except (ConnectionRefusedError, NewConnectionError, MaxRetryError, ProxyError) as e:
+            print('Error happend goes %s' % e)
+            
+def get_proxy():
+    if PASSWORD:
+        redisClient = redis.Redis(host=HOST, port=PORT, password=PASSWORD)
+    else:
+        redisClient = redis.Redis(host=HOST, port=PORT)
+    proxies = redisclient.lrange('proxies', 0, -1)
+    return random.choice(proxies)
 
 
 def parse_html(html):
@@ -40,14 +54,19 @@ def parse_html(html):
 
 
 def parse_detail(url):
-    html =get_html(url=url)
-    doc = etree.HTML(html)
-    max_pages = int(doc.xpath('//div[@class="pagenavi"]/a[5]/span/text()')[0])
-    image_url_list = [url + '/' + str(page) for page in range(1, max_pages+1)]
-    for image_url in image_url_list:
-        html = get_html(url=image_url)
-        get_image_link(html)
-        time.sleep(0.8)
+    proxy = get_proxy()
+    print('正在解析页面%s' % url)
+    html =get_html(url=url, proxy=proxy)
+    if type(html) == str:
+        doc = etree.HTML(html)
+        max_pages = doc.xpath('//div[@class="pagenavi"]/a[5]/span/text()')
+        if max_pages:
+            int_pages = int(max_pages[0])
+            image_url_list = [url + '/' + str(page) for page in range(1, max_pages+1)]
+            for image_url in image_url_list:
+                html = get_html(url=image_url)
+                get_image_link(html)
+            
 
 
 def get_image_link(html):
