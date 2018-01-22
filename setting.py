@@ -5,8 +5,14 @@ DEFAULT_USER_AGENT = {
 }
 
 START_URL = 'http://www.mzitu.com/all/'
-IMAGES_STORE = '/home/gbc/Py/test/mzt/images/'
+# 自己的存储路径
+IMAGES_STORE = 'file_path'
 
 MONGO_URL = 'localhost'
 MONGO_DATABASE = 'mzitu'
 MONGO_TABLE = 'mzitu'
+
+HOST = 'localhost'
+PORT = 6379
+# redis数据库的密码
+PASSWORD = 'password'
